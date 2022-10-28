@@ -2,6 +2,8 @@ import streamlit as st
 from streamlit_option_menu import option_menu
 import plotly.graph_objects as go
 
+import database as db
+
 import calendar
 from datetime import datetime
 
@@ -20,6 +22,14 @@ dataVisual = 'Data Visualization'
 st.set_page_config(page_title=page_title, layout=layout)
 st.title(page_title)
 
+
+# DATABASE CONFIGURATION
+def get_all_periods():
+    items = db.fetch_all_periods()
+    periods = [item['key'] for item in items]
+    return periods
+
+
 # HIDE STREAMLIT DEFAULT STYLE
 hide_st_style = """
             <style>
@@ -28,6 +38,7 @@ hide_st_style = """
             </style>
             """
 st.markdown(hide_st_style, unsafe_allow_html=True)
+
 
 # DROPDOWN VALUES
 years = [datetime.today().year, datetime.today().year + 1]
@@ -70,9 +81,7 @@ if selected == dataEntry:
                 expense: st.session_state[expense] for expense in expenses
             }
 
-            # TODO: Insert values into DB
-            st.write(f'Incomes: {incomes}')
-            st.write(f'Expenses: {expenses}')
+            db.insert_period(period, incomes, expenses, comment)
             st.success('Data saved successfully')
 
 
@@ -80,19 +89,15 @@ if selected == dataVisual:
     # PLOT PERIODS
     st.header(dataVisual)
     with st.form('saved_periods'):
-        # TODO: Get periods from DB
-        period = st.selectbox('Select Period:', ['2022_October'])
+        period = st.selectbox('Select Period:', get_all_periods())
         submitted = st.form_submit_button('Plot Period')
 
         if submitted:
-            # TODO: Get data from DB
-            comment = 'Test comment'
-            incomes = {
-                'Salary': 1500, 'Blog': 50, 'Other income': 10,
-            }
-            expenses = {
-                'Rent': 600, 'Utilities': 200, 'Groceries': 300, 'Car': 100, 'Other expenses': 10, 'Saving': 50,
-            }
+            period_data = db.get_period(period)
+
+            incomes = period_data.get('incomes')
+            expenses = period_data.get('expenses')
+            comment = period_data.get('comment')
 
         # Create metrics
         total_incomes = sum(incomes.values())
